@@ -14,6 +14,16 @@ class Company extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function searchAll()
+    {
+        return Company::all();
+    }
+
+    public function conditionSearch($query)
+    {
+        return $query->get();
+    }
 }
 
 
