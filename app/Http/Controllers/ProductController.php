@@ -18,16 +18,21 @@ class ProductController extends Controller
         if($company_id = $request->company_id){ 
             $query->where('company_id', $request->company_id);
         }
-        $products = $query->get();
+        $product = new Product();
 
-        $companies = Company::all();    
+        $products = $product->conditionSearch($query);
+
+        $company = new Company();
+
+        $companies = $company->searchAll();
 
         return view('products.index', compact('products','companies'));
     }
 
     public function create()
     {
-        $companies = Company::all();
+        $company = new Company();
+        $companies = $company->searchAll();
 
         return view('products.create', compact('companies'));
     }
@@ -61,7 +66,15 @@ class ProductController extends Controller
             $product->img_path = '/storage/' . $filePath;
         }
 
-        $product->save();
+        $products = new Product();
+        try {
+            DB::beginTransaction();
+            $products->newCreate($product);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+        }
 
         return redirect('products');
     }
@@ -73,16 +86,19 @@ class ProductController extends Controller
 
         $query->where('id', $product->company_id);
 
-        $company = $query->get();
+        $company = new Company();
 
-        $product->company = $company;
+        $companies = $company->conditionSearch($query);
+
+        $product->company = $companies;
 
         return view('products.show', ['product' => $product]);
     }
 
     public function edit(Product $product)
     {
-        $companies = Company::all();
+        $company = new Company();
+        $companies = $company->searchAll();
 
         return view('products.edit', compact('product', 'companies'));
     }
@@ -103,7 +119,15 @@ class ProductController extends Controller
         $product->comment = $request->comment;
         $product->img_path = $request->img_path;
 
-        $product->save();
+        $products = new Product();
+        try {
+            DB::beginTransaction();
+            $products->targetUpdate($product);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Product updated successfully');
@@ -111,7 +135,15 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        $product->delete();
+        $products = new Product();
+        try {
+            DB::beginTransaction();
+            $products->targetDelet($product);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+        
+        }
 
         return redirect('/products');
     }

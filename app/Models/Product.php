@@ -27,6 +27,26 @@ class Product extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    public function conditionSearch($query)
+    {
+        return $query->get();
+    }
+
+    public function newCreate($product)
+    {
+        return $product->save();
+    }
+
+    public function targetUpdate($product)
+    {
+        return $product->save();
+    }
+
+    public function targetDelete($product)
+    {
+        return $product->delete();
+    }
 }
 
 
