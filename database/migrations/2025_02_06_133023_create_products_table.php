@@ -15,7 +15,7 @@ class CreateProductsTable extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->increments('id'); 
-            $table->integer('company_id');
+            $table->integer('company_id')->constrained('companies')->onDelete('cascade');
             $table->string('product_name');
             $table->integer('price'); 
             $table->integer('stock'); 

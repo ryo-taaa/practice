@@ -5,29 +5,47 @@ namespace App\Http\Controllers;
 use App\Models\Product; 
 use App\Models\Company; 
 use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller 
 {
     
     public function index(Request $request)
-    {
-        $query = Product::query();
-        if($product_name = $request->product_name){
-            $query->where('product_name', 'LIKE', '%' . $request->product_name . '%');
-        }
-        if($company_id = $request->company_id){ 
-            $query->where('company_id', $request->company_id);
-        }
-        $product = new Product();
+{
+    $query = Product::query();
 
-        $products = $product->conditionSearch($query);
-
-        $company = new Company();
-
-        $companies = $company->searchAll();
-
-        return view('products.index', compact('products','companies'));
+    if ($product_name = $request->product_name) {
+        $query->where('product_name', 'LIKE', '%' . $product_name . '%');
     }
+
+    if ($company_id = $request->company_id) {
+        $query->where('company_id', $company_id);
+    }
+
+    if ($request->filled('min_price')) {
+        $query->where('price', '>=', $request->min_price);
+    }
+
+    if ($request->filled('max_price')) {
+        $query->where('price', '<=', $request->max_price);
+    }
+
+    if ($request->filled('min_stock')) {
+        $query->where('stock', '>=', $request->min_stock);
+    }
+
+    if ($request->filled('max_stock')) {
+        $query->where('stock', '<=', $request->max_stock);
+    }
+
+    $product = new Product();
+    $products = $product->conditionSearch($query);
+
+    $company = new Company();
+    $companies = $company->searchAll();
+
+    return view('products.index', compact('products','companies'));
+}
 
     public function create()
     {
@@ -117,7 +135,11 @@ class ProductController extends Controller
         $product->price = $request->price;
         $product->stock = $request->stock;
         $product->comment = $request->comment;
-        $product->img_path = $request->img_path;
+        if ($request->hasFile('img_path')) {
+            $filename = $request->img_path->getClientOriginalName();
+            $filePath = $request->img_path->storeAs('products', $filename, 'public');
+            $product->img_path = '/storage/' . $filePath;
+        }
 
         $products = new Product();
         try {
@@ -130,23 +152,59 @@ class ProductController extends Controller
         }
 
         return redirect()->route('products.index')
-            ->with('success', 'Product updated successfully');
+            ->with('success',config('message.Update'));
     }
 
-    public function destroy(Product $product)
+  public function destroy($id)
     {
-        $products = new Product();
-        try {
-            DB::beginTransaction();
-            $products->targetDelet($product);
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-        
-        }
+    // 指定されたIDに対応する商品を取得
+    $product = Product::findOrFail($id);
 
-        return redirect('/products');
+    // 商品を削除
+    $product->delete();
+
+    // JSONレスポンスを返す
+    return response()->json(['success' => '商品を削除しました。']);
     }
 
-}
+    public function search(Request $request)
+    {
+        $query = Product::select('products.*', 'company_name')
+            ->join('companies', 'companies.id', '=', 'products.company_id');
+    
+        if (isset($request->keyword)) {
+            $query->where('product_name', 'like', '%' . $request->keyword . '%');
+        }
+    
+        if (isset($request->company_id)) {
+            $query->where('company_id', $request->company_id);
+        }
+    
+        if (isset($request->min_price)) {
+            $query->where('price', '>=', $request->min_price);
+        }
+    
+        if (isset($request->max_price)) {
+            $query->where('price', '<=', $request->max_price);
+        }
+    
+        if (isset($request->min_stock)) {
+            $query->where('stock', '>=', $request->min_stock);
+        }
+    
+        if (isset($request->max_stock)) {
+            $query->where('stock', '<=', $request->max_stock);
+        }
+    
+        $products = $query->orderBy('id', 'asc')->get();
 
+        // ★ img_path を asset() で URL に変換する処理を追加
+        foreach ($products as $product) {
+            if (!empty($product->img_path)) {
+                $product->img_path = asset($product->img_path);
+            }
+        }
+    
+        return response()->json(['products' => $products]);
+    }
+}    

@@ -15,7 +15,7 @@ class CreateSalesTable extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->increments('id'); 
-            $table->integer('product_id');
+            $table->integer('product_id')->constrained('products')->onDelete('cascade');
             $table->timestamps(); 
 
         });

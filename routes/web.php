@@ -17,6 +17,8 @@ Route::get('/', function () {
 Auth::routes();
 
 
+Route::get('/products/search', [ProductController::class, 'search'])->name('product.search');
+
 Route::group(['middleware' => 'auth'], function () {
     Route::resource('products', ProductController::class);
 });
